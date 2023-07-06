@@ -1,157 +1,93 @@
+const playBoard = document.querySelector(".play-board");
+const scoreElement = document.querySelector(".score");
+const highScoreElement = document.querySelector(".high-score");
+const controls = document.querySelectorAll(".controls i");
 
-class Snake{
-    constructor(x ,y ,size){
-        this.x = x
-        this.y = y
-        this.size = size
-        this.tail= [{x:this.x, y:this.y}]
-        this.rotateX = 0
-        this.rotateY = 1
+let gameOver = false;
+let foodX, foodY;
+let snakeX = 5, snakeY = 5;
+let velocityX = 0, velocityY = 0;
+let snakeBody = [];
+let setIntervalId;
+let score = 0;
 
+// Getting high score from the local storage
+let highScore = localStorage.getItem("high-score") || 0;
+highScoreElement.innerText = `High Score: ${highScore}`;
+
+const updateFoodPosition = () => {
+    // Passing a random 1 - 30 value as food position
+    foodX = Math.floor(Math.random() * 30) + 1;
+    foodY = Math.floor(Math.random() * 30) + 1;
+}
+
+const handleGameOver = () => {
+    // Clearing the timer and reloading the page on game over
+    clearInterval(setIntervalId);
+    alert("Game Over! Press OK to replay...");
+    location.reload();
+}
+
+const changeDirection = e => {
+    // Changing velocity value based on key press
+    if(e.key === "ArrowUp" && velocityY != 1) {
+        velocityX = 0;
+        velocityY = -1;
+    } else if(e.key === "ArrowDown" && velocityY != -1) {
+        velocityX = 0;
+        velocityY = 1;
+    } else if(e.key === "ArrowLeft" && velocityX != 1) {
+        velocityX = -1;
+        velocityY = 0;
+    } else if(e.key === "ArrowRight" && velocityX != -1) {
+        velocityX = 1;
+        velocityY = 0;
+    }
+}
+
+// Calling changeDirection on each key click and passing key dataset value as an object
+controls.forEach(button => button.addEventListener("click", () => changeDirection({ key: button.dataset.key })));
+
+const initGame = () => {
+    if(gameOver) return handleGameOver();
+    let html = `<div class="food" style="grid-area: ${foodY} / ${foodX}"></div>`;
+
+    // Checking if the snake hit the food
+    if(snakeX === foodX && snakeY === foodY) {
+        updateFoodPosition();
+        snakeBody.push([foodY, foodX]); // Pushing food position to snake body array
+        score++; // increment score by 1
+        highScore = score >= highScore ? score : highScore;
+        localStorage.setItem("high-score", highScore);
+        scoreElement.innerText = `Score: ${score}`;
+        highScoreElement.innerText = `High Score: ${highScore}`;
+    }
+    // Updating the snake's head position based on the current velocity
+    snakeX += velocityX;
+    snakeY += velocityY;
+    
+    // Shifting forward the values of the elements in the snake body by one
+    for (let i = snakeBody.length - 1; i > 0; i--) {
+        snakeBody[i] = snakeBody[i - 1];
+    }
+    snakeBody[0] = [snakeX, snakeY]; // Setting first element of snake body to current snake position
+
+    // Checking if the snake's head is out of wall, if so setting gameOver to true
+    if(snakeX <= 0 || snakeX > 30 || snakeY <= 0 || snakeY > 30) {
+        return gameOver = true;
     }
 
-    move(){
-        var newRect;
-        if(this.rotateX == 1){
-            newRect = {
-                x : this.tail[this.tail.length - 1].x + this.size,
-                y : this.tail[this.tail.length - 1].y
-            }
-        } else if(this.rotateX == -1){
-            newRect = {
-                x : this.tail[this.tail.length - 1].x - this.size,
-                y : this.tail[this.tail.length - 1].y
-            }
-        } else if(this.rotateX == 1){
-            newRect = {
-                x : this.tail[this.tail.length - 1].x ,
-                y : this.tail[this.tail.length - 1].y + this.size
-            }
-        }else if(this.rotateX == -1){
-            newRect = {
-                x : this.tail[this.tail.length - 1].x ,
-                y : this.tail[this.tail.length - 1].y - this.size
-            }
+    for (let i = 0; i < snakeBody.length; i++) {
+        // Adding a div for each part of the snake's body
+        html += `<div class="head" style="grid-area: ${snakeBody[i][1]} / ${snakeBody[i][0]}"></div>`;
+        // Checking if the snake head hit the body, if so set gameOver to true
+        if (i !== 0 && snakeBody[0][1] === snakeBody[i][1] && snakeBody[0][0] === snakeBody[i][0]) {
+            gameOver = true;
         }
-
-        this.tail.shift()
-        this.tail.push(newRect)
     }
+    playBoard.innerHTML = html;
 }
 
-class Apple {
-    constructor(){
-        console.log("apple")
-        console.log(snake.size)
-        var isTouching;
-        while(true){
-            isTouching = false;
-            TouchList.x =Math.floor(Math.random() * canvas.width/ snake.size)*snake.size
-            TouchList.y =Math.floor(Math.random() * canvas.height/ snake.size)*snake.size
-            for(var i =0; i < snake.tail.length; i++){
-                if(this.x == snake.tail[i].x && this.y == snake.tail[i].y){
-                    isTouching = true
-                }
-            }
-            
-            console.log(this.x , this.y)
-            this.color = "red"
-            this.size = snake.size
-            console.log(this.x , this.y)
-            if(!isTouching){
-                break;
-            }
-        } 
-    }
-}
-
-
-var canvas = document.getElementById("canvas")
-
-var snake = new Snake(20,20,20);
-
-var apple = new Apple();
-
-var canvasContext = canvas.getContext('2d');
-
-window.onload = ()=>{
-    gameLoop();
-}
-
-function gameLoop(){
-    setInterval(show, 1000/15)  // 15 fp value
-}
-
-function show(){
-    update();
-    draw();
-}
-
-function update(){
-    canvasContext,clearRect(0,0, canvas.width, canvas.height)
-    console.log("update")
-    snake.move()
-    eatApple()
-    checkHitWall();
-
-}
-
-function checkHitWall(){
-    var headTail = snake.tail[snake.tail.length - 1]
-    if (headTail.x == - snake.size) {
-        headTail.x = canvas.width - snake.size
-    } else if (headTail.x == canvas.widh) {
-        headTail.x = 0
-    } else if (headTail.y == - snake.size) {
-        headTail.y = canvas.height - snake.size
-    } else if (headTail.y == canvas.height) {
-        headTail.y = 0 
-    }
-}
-
-function eatApple(){
-    if(snake.tail[snake.tail.length - 1].x == apple.x &&
-      snake.tail[snake.tail.length - 1].y == apple.y){
-      snake.tail[snake.tail.length]= {x:apple.x, y:apple.y}
-      apple = new Apple ();
-      }
-
-}
-
-function draw(){
-    createRect(0,canvas.width, canvas.height, "black" )
-    createRect(0, canvas.width, canvas.height)
-    for(var i = 0; i < snake.tail.length; i++){
-        createRect(snake.tail[i].x + 2.5, snake.tail[i].y+ 2.5, 
-            snake.size - 5, snake.size - 5, 'white')
-    }
-
-    canvasContext.font ="20px Arial"
-    canvasContext.fillStyle = "#00ff42"
-    canvasContext.fillText("Score:"+ (snake.tail.length -1),canvas.width -120, 18);
-    createRect(apple.x, apple.y, apple.size, apple.size, apple.color )
-}
-
-function createRect(x,y,width,height,color){
-    canvasContext.fillStyle=color
-    canvasContext.fillRect(x,y,width,height)
-}
-
-
-window.addEventListener("keydown", (event) => {
-    setTimeout(() => {
-        if (event.keyCode == 37 && snake.rotateX != 1) {
-            snake.rotateX = -1
-            snake.rotateY = 0
-        } else if (event.keyCode == 38 && snake.rotateY != 1) {
-            snake.rotateX = 0
-            snake.rotateY = -1
-        } else if (event.keyCode == 39 && snake.rotateX != -1) {
-            snake.rotateX = 1
-            snake.rotateY = 0
-        } else if (event.keyCode == 40 && snake.rotateY != -1) {
-            snake.rotateX = 0
-            snake.rotateY = 1
-        }
-    }, 1)
-})
+updateFoodPosition();
+setIntervalId = setInterval(initGame, 100);
+document.addEventListener("keyup", changeDirection);
